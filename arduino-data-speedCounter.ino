@@ -16,6 +16,8 @@
 #define motorPin3  8     // IN3 on the ULN2003 driver 1
 #define motorPin4  9   // IN4 on the ULN2003 driver 1
 
+#define beeperPin  12
+
 
 //Each time the motor is driven to a certain angle (0 to 180 degrees) we will write to the EEPROM this angle so that we can reset it whenever the arduino is unplugged
 const int addr = 0;  // the current address in the EEPROM (i.e. which byte we're going to write to next)
@@ -36,6 +38,9 @@ int lookup[8] = {B01000, B01100, B00100, B00110, B00010, B00011, B00001, B01001}
 // Ethernet  connection definition
 //************************************************************************
 byte server[] = { 104,131,116,128}; //ip Address of the server you will connect to
+//byte server[] = { 192,168,0,105}; //ip Address of the server you will connect to
+
+
 int port = 80; // server port
 String location = "/index.php HTTP/1.0";
 
@@ -75,12 +80,11 @@ void setup() {
   
   Serial.begin(9600);
  
-  int value = EEPROM.read(addr);
+  //int value = EEPROM.read(addr);
  
-  Serial.println("EEPROM Value");
-  Serial.println(value);
-  //lastPosition = 2;
-  antiClockwise(value);
+  //Serial.println("EEPROM Value");
+  //Serial.println(value);
+  // antiClockwise(value);
  
   Serial.println("starting communication");
  	
@@ -120,16 +124,22 @@ void loop(){
                Serial.println(traf);
                //Read the output value written on the webpage
  
-              //int traffic = readPage().toInt();
+              //int traffic = readTrafic().toInt();
               Serial.println("traffic from webpage");
               Serial.println(traffic); 
       	
               int angle = trafficToAngle(traffic);
               Serial.println("Angle converted from traffic");
               Serial.println(angle); 
-            
+              Serial.println("lastPosition");
+              Serial.println(lastPosition); 
+
               int diffAngle = angle - lastPosition;
-        
+              
+              Serial.println("diffAngle");
+              Serial.println(diffAngle); 
+
+              
               lastPosition = angle;
             
               if(diffAngle >0){            
@@ -139,17 +149,14 @@ void loop(){
               }
               
               //save to eeprom in case the Arduino disconnects we can reset the motor to the initial position by substracting this angle
-      	      EEPROM.put(addr, lastPosition);
-              int test = EEPROM.read(addr);
-              Serial.println("eeprom"); 
-              Serial.println(test); 
-
-              delay(30000);
+      	      //EEPROM.put(addr, lastPosition);
+              //int test = EEPROM.read(addr);
+              //Serial.println("eeprom"); 
+            
+              delay(3000);
 
       //end of success case connection  
       }	
-
-
 
 
 
@@ -197,7 +204,7 @@ String connectAndRead(){
     client.println();
 
     //Connected - Read the page
-    return readPage(); //go and read the output
+    return readTrafic();//, readOrders(); //go and read the output
 
   }else{
     return "connection failed";
@@ -214,7 +221,7 @@ String connectAndRead(){
 
 
 
-String readPage(){
+String readTrafic(){
   //read the page, and capture & return everything between '<' and '>'
 
   stringPos = 0;
@@ -248,6 +255,45 @@ String readPage(){
   }
 
 }
+
+
+
+String readOrders(){
+  //read the page, and capture & return everything between '[' and ']'
+
+  stringPos = 0;
+  memset( &inString, 0, 32 ); //clear inString memory
+
+  while(true){
+
+    if (client.available()) {
+      char c = client.read();
+
+      if (c == '[' ) { //'<' is our begining character
+        startRead = true; //Ready to start reading the part 
+      }else if(startRead){
+
+        if(c != ']'){ //']' is our ending character
+          inString[stringPos] = c;
+          stringPos ++;
+        }else{
+          //got what we need here! We can disconnect now
+          startRead = false;
+          client.stop();
+          client.flush();
+          Serial.println("disconnecting.");
+          return inString;
+
+        }
+
+      }
+    }
+
+  }
+
+}
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 //   3. Convert the degrees into the closest number of steps relative to the step motor model.
@@ -317,3 +363,4 @@ void setOutput(int out)
 }
 
  
+
