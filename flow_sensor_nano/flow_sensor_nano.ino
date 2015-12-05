@@ -19,8 +19,6 @@ int flag = 0;        // make sure that you return the state only once
 
 
 
-
-
 // initialize the library with the numbers of the interface pins
 LiquidCrystal lcd(12, 11, 10, 9, 8, 7);
 
@@ -120,6 +118,7 @@ byte statusLed    = 4;
 byte beeper = 5;
 byte sensorInterrupt = 0;  // 0 = digital pin 2
 byte sensorPin       = 2;
+byte backLight       = 3; // Backlight from the LCD display
 
 
 // Quantity until alarm is triggered
@@ -131,6 +130,8 @@ byte sensorPin       = 2;
 float calibrationFactor = 7.5;
 
 volatile byte pulseCount;  
+
+
 
 float flowRate;
 unsigned int flowMilliLitres;
@@ -150,7 +151,7 @@ void setup()
   // Set up the status LED line as an output
   pinMode(statusLed, OUTPUT);
   pinMode(beeper, OUTPUT);
-   
+  pinMode(backLight, OUTPUT); // LCD backlight
   
     // set up the LCD's number of columns and rows:
  
@@ -188,11 +189,10 @@ void setup()
 // sets the LCD's rows and colums:
   lcd.begin(16, 2);
 
+// light on the LCD backlight   // as I am using a PNP transistor it let the current flow when it its grounded (LOW)
+ digitalWrite( backLight, LOW);
 
 //Welcome Screen
-lcd.print("Welcome");
-delay(1000);
- lcd.clear();
 
 //check if there is a last score saved on the EEProm;
    lastScore = EEPROM.read(0);
@@ -201,7 +201,7 @@ delay(1000);
    Serial.println("Last Score:");
    Serial.print(lastScore);
   
-  lcd.print("Last score");
+  lcd.print("Last score :");
   lcd.setCursor(0, 1);
   // print the number of seconds since reset:
  lcd.print(lastScore);
@@ -210,7 +210,31 @@ delay(1000);
  delay(2000); 
  lcd.clear();
 
-  lcd.print("Try using less");
+  lcd.print("Try using less water!");
+  
+      delay(350);
+
+ /*----Display a Scrolling message ---*/ 
+  
+  
+  // scroll 13 positions (string length) to the left
+  // to move it offscreen left:
+  for (int positionCounter = 0; positionCounter < 10; positionCounter++) {
+    // scroll one position left:
+    lcd.scrollDisplayLeft();
+    // wait a bit:
+
+    delay(450);
+    
+     digitalWrite( backLight, HIGH);  // turn backlight off
+    
+
+  }
+  
+  
+  
+  
+  
   
  delay(2000); 
  lcd.clear();
@@ -304,7 +328,10 @@ void loop()
       
       
    
-   
+    
+    
+     digitalWrite( backLight, LOW);  // turn on backlight
+    
    
    //    lcd.begin(16, 2);
   // Print a message to the LCD.
@@ -316,6 +343,10 @@ void loop()
    
    LCDprintNumber(totalLiters);
  
+ 
+ 
+ 
+    
     
  
  //========Alarm 5 liters
@@ -401,4 +432,5 @@ void pulseCounter()
 {
   // Increment the pulse counter
   pulseCount++;
+  
 }
